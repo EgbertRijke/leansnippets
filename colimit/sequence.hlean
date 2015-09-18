@@ -50,7 +50,7 @@ namespace seq_colim
     exact (IH ((@f k)⁻¹ a)),
   end
 
-  definition rep0_equiseq_is_equiv [instance] [H : is_equiseq f] (k : ℕ) : is_equiv (rep0 k) :=
+  definition rep0_equiseq_is_equiv [instance] [H : is_equiseq f] (k : ℕ) : is_equiv (@rep0 A f k) :=
   begin
     fapply adjointify,
     exact (rep0_equiseq_back k),
