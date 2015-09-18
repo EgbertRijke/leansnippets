@@ -33,8 +33,43 @@ namespace seq_colim
   attribute Seq_diagram.struct [instance] [priority 10000] [coercion]
 
   variables {A : ℕ → Type} [f : seq_diagram A]
-  variables {n : ℕ} (a : A n)
   include f
+
+  definition rep0 [reducible] (k : ℕ) (a : A 0) : A k :=
+  by induction k with k x; exact a; exact f x
+
+  definition  rep0_equiseq_back [H : is_equiseq f] (k : ℕ) (a : A k) : A 0 :=
+  begin
+    induction k with k g,
+    exact a,
+    exact g ((@f k)⁻¹ a),
+  end
+
+  definition rep0_equiseq_is_equiv [instance] [H : is_equiseq f] (k : ℕ) : is_equiv (λ (a : A 0), rep0 k a) :=
+  begin
+    fapply adjointify,
+    exact (λ (a : A k), rep0_equiseq_back k a),
+    induction k with k IH: intro b,
+    exact rfl,
+    unfold rep0,
+    unfold rep0_equiseq_back,
+    fold [rep0 k (rep0_equiseq_back k ((@f k)⁻¹ b))],
+    refine _ ⬝ _,
+    exact (@f k) ((@f k)⁻¹ b),
+    exact (ap (@f k) (IH ((@f k)⁻¹ b))),
+    apply right_inv (@f _),
+    induction k with k IH: intro b,
+    exact rfl,
+    unfold rep0_equiseq_back,
+    unfold rep0,
+    fold [rep0 k b],
+    refine _ ⬝ _,
+    exact (rep0_equiseq_back k (rep0 k b)),
+    exact (ap (rep0_equiseq_back k) (@left_inv _ _ (@f k) _ (rep0 k b))),
+    exact IH b,
+  end
+
+  variables {n : ℕ} (a : A n)
 
   definition rep [reducible] (k : ℕ) (a : A n) : A (n + k) :=
   by induction k with k x;exact a;exact f x
@@ -47,34 +82,34 @@ namespace seq_colim
       exact apo f IH}
   end
 
-  definition req_equiseq_back [H : is_equiseq f] (k : ℕ) (a : A (n + k)) : A n :=
+  definition  rep_equiseq_back [H : is_equiseq f] (k : ℕ) (a : A (n + k)) : A n :=
   begin
     induction k with k g,
     exact a,
     exact g ((@f (n + k))⁻¹ a),
   end
 
-  definition req_equiseq_is_equiv [H : is_equiseq f] (k : ℕ) : is_equiv (λ (a : A n), rep k a) :=
+  definition rep_equiseq_is_equiv [instance] [H : is_equiseq f] (k : ℕ) : is_equiv (λ (a : A n), rep k a) :=
   begin
     fapply adjointify,
-    exact (λ (a : A (n + k)), req_equiseq_back k a),
+    exact (λ (a : A (n + k)), rep_equiseq_back k a),
     induction k with k IH: intro b,
     exact rfl,
     unfold rep,
-    unfold req_equiseq_back,
-    fold [rep k (req_equiseq_back k ((@f (n+k))⁻¹ b))],
+    unfold rep_equiseq_back,
+    fold [rep k (rep_equiseq_back k ((@f (n+k))⁻¹ b))],
     refine _ ⬝ _,
     exact (@f (n+k)) ((@f (n+k))⁻¹ b),
     exact (ap (@f (n+k)) (IH ((@f (n+k))⁻¹ b))),
     apply right_inv (@f _),
     induction k with k IH: intro b,
     exact rfl,
-    unfold req_equiseq_back,
+    unfold rep_equiseq_back,
     unfold rep,
     fold [rep k b],
     refine _ ⬝ _,
-    exact (req_equiseq_back k (rep k b)),
-    exact (ap (req_equiseq_back k) (@left_inv _ _ (@f (n+k)) _ (rep k b))),
+    exact (rep_equiseq_back k (rep k b)),
+    exact (ap (rep_equiseq_back k) (@left_inv _ _ (@f (n+k)) _ (rep k b))),
     exact IH b,
   end
 
