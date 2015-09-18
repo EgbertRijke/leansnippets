@@ -9,6 +9,7 @@ import types.nat .move_to_lib
 open nat eq equiv sigma sigma.ops is_equiv
 
 namespace seq_colim
+-- Type sequences are basically presheaves on ⟨ℕ,≤⟩. They form a model of type theory, so we define not only type sequences, but also dependent type sequences and terms thereof.
 
   definition seq_diagram [class] (A : ℕ → Type) : Type := Π⦃n⦄, A n → A (succ n)
   -- structure seq_diagram [class] (A : ℕ → Type) : Type :=
@@ -74,7 +75,8 @@ namespace seq_colim
     exact IH b,
   end
 
-  variables {n : ℕ} (a : A n)
+  section generalized_rep
+  variable {n : ℕ}
 
   definition rep [reducible] (k : ℕ) (a : A n) : A (n + k) :=
   by induction k with k x;exact a;exact f x
@@ -132,7 +134,9 @@ namespace seq_colim
   end
 
   definition f_rep (k : ℕ) (a : A n) : f (rep k a) = rep (succ k) a := idp
+  end generalized_rep
 
+  section shift
   variable (A)
   definition shift_diag [instance] [unfold-full] : seq_diagram (λn, A (succ n)) :=
   λn a, f a
@@ -144,32 +148,92 @@ namespace seq_colim
   definition kshift_diag' [instance] [unfold-full] [priority 800] (k : ℕ)
     : seq_diagram (λn, A (n + k)) :=
   λn a, !succ_add⁻¹ ▸ f a
+  end shift
 
-  definition arrow_left_diag [instance] [unfold-full] (X : Type)
-    : seq_diagram (λn, X → A n) :=
-  λn g x, f (g x)
+  section constructions
 
-  variable {A}
+    omit f
+
+    definition constant_seq [instance] (X : Type) :
+      seq_diagram (λ n, X) :=
+      λ n x, x
+
+    definition arrow_left_diag [instance] [unfold-full] (X : Type) :
+      seq_diagram (λn, X → A n) :=
+      λn g x, f (g x)
+
+    inductive finset : ℕ → Type :=
+      | fin : forall n, finset n → finset (succ n)
+      | ftop : forall n, finset (succ n)
+
+    definition seq_finset : seq_diagram finset := finset.fin
+
+    definition id0_seq (x y : A 0) : ℕ → Type :=
+      λ n, (@rep0 _ f n x) = (rep0 n y)
+
+    definition id0_seq (x y : A 0) : seq_diagram (@id0_seq A f x y) :=
+      begin
+        exact λ (n : ℕ), @ap (@f n) (rep0 n x) (rep0 n y)
+      end
+   --
+
+  end constructions
+
   section over
-  variable (P : Π⦃n⦄, A n → Type)
 
-  definition seq_diagram_over [class] : Type := Π⦃n⦄ {a : A n}, P a → P (f a)
+    variable {A}
+    variable (P : Π⦃n⦄, A n → Type)
 
-  variable [g : seq_diagram_over P]
-  include g
-  definition seq_diagram_of_over [instance] [unfold-full] {n : ℕ} (a : A n)
-    : seq_diagram (λk, P (rep k a)) :=
-  λk p, g p
+    definition seq_diagram_over [class] : Type := Π⦃n⦄ {a : A n}, P a → P (f a)
 
-  definition seq_diagram_sigma [instance] : seq_diagram (λn, Σ(x : A n), P x) :=
-  λn v, ⟨f v.1, g v.2⟩
+    variable [g : seq_diagram_over P]
+    include g
+    definition seq_diagram_of_over [instance] [unfold-full] {n : ℕ} (a : A n) :
+      seq_diagram (λk, P (rep k a)) :=
+      λk p, g p
 
-  theorem rep_f_equiv [constructor] (k : ℕ) : P (rep (succ k) a) ≃ P (rep k (f a)) :=
-  equiv_of_eq (apo011 P _ (rep_f k a)⁻¹ᵒ)
+    definition seq_diagram_sigma [instance] : seq_diagram (λn, Σ(x : A n), P x) :=
+      λn v, ⟨f v.1, g v.2⟩
 
-  theorem rep_rep_equiv [constructor] (k l : ℕ) : P (rep (k + l) a) ≃ P (rep k (rep l a)) :=
-  equiv_of_eq (apo011 P _ (rep_rep k l a)⁻¹ᵒ)
+    variable {n : ℕ}
+
+    theorem rep_f_equiv [constructor] (a : A n) (k : ℕ) :
+      P (rep (succ k) a) ≃ P (rep k (f a)) :=
+      equiv_of_eq (apo011 P _ (rep_f k a)⁻¹ᵒ)
+
+    theorem rep_rep_equiv [constructor] (a : A n) (k l : ℕ) :
+      P (rep (k + l) a) ≃ P (rep k (rep l a)) :=
+      equiv_of_eq (apo011 P _ (rep_rep k l a)⁻¹ᵒ)
 
   end over
+
+  section sequential_transformations
+  -- We define the notion of sequential transformation into the type sequence ⟨A,f⟩, which is basically a natural transformation of presheaves on ⟨ℕ,≤⟩. Another way of looking at sequential transformations is that a sequential transformation from ⟨B,g⟩ to ⟨A,f⟩ is a term of the dependent type sequence "⟨A,f⟩ weakened by ⟨B,g⟩" over ⟨B,g⟩. A sequential transformation is an equivalence if all its components are. We give some very simple examples of sequential transformations, including rep0 and the natural map to the shifted sequence.
+
+    definition seq_trans_carrier {B : ℕ → Type} (g : seq_diagram B) : Type :=
+      forall (n : ℕ), B n → A n
+
+    check seq_trans_carrier
+
+    definition seq_trans_natural [class] {B : ℕ → Type} (g : seq_diagram B) (t : @seq_trans_carrier A f B g) : Type :=
+      forall (n : ℕ) (b : B n), f (t n b) = t (succ n) (g b)
+
+    definition seq_trans_isequiv {B : ℕ → Type} (g : seq_diagram B)
+      (t : @seq_trans_carrier _ f _ g) (H : @seq_trans_natural _ _ _ _ t) : Type :=
+      forall ⦃n : ℕ⦄, is_equiv (t n)
+
+    check constant_seq
+
+    definition rep0_into : seq_trans_natural (constant_seq (A 0)) rep0 :=
+      begin
+      unfold seq_trans_natural,
+      intros n a,
+      unfold rep0,
+      end
+
+    definition rep0_into_equiseq_isequiv (H : is_equiseq f) : seq_trans_isequiv (constant_seq (A 0)) rep0 rep0_into :=
+      rep0_equiseq_is_equiv
+
+  end sequential_transformations
 
 end seq_colim
