@@ -35,20 +35,25 @@ namespace seq_colim
   variables {A : ℕ → Type} [f : seq_diagram A]
   include f
 
-  definition rep0 [reducible] (k : ℕ) (a : A 0) : A k :=
-  by induction k with k x; exact a; exact f x
-
-  definition  rep0_equiseq_back [H : is_equiseq f] (k : ℕ) (a : A k) : A 0 :=
+  definition rep0 [reducible] (k : ℕ) : A 0 → A k :=
   begin
-    induction k with k g,
+    intro a,
+    induction k with k x,
     exact a,
-    exact g ((@f k)⁻¹ a),
+    exact f x
   end
 
-  definition rep0_equiseq_is_equiv [instance] [H : is_equiseq f] (k : ℕ) : is_equiv (λ (a : A 0), rep0 k a) :=
+  definition  rep0_equiseq_back [H : is_equiseq f] (k : ℕ) : A k → A 0 :=
+  begin
+    induction k with k IH: intro a,
+    exact a,
+    exact (IH ((@f k)⁻¹ a)),
+  end
+
+  definition rep0_equiseq_is_equiv [instance] [H : is_equiseq f] (k : ℕ) : is_equiv (rep0 k) :=
   begin
     fapply adjointify,
-    exact (λ (a : A k), rep0_equiseq_back k a),
+    exact (rep0_equiseq_back k),
     induction k with k IH: intro b,
     exact rfl,
     unfold rep0,

@@ -106,7 +106,11 @@ namespace seq_colim
   begin
     intro x,
     induction x with n a,
-    apply (rep n)⁻¹,
+    apply (rep0 n)⁻¹,
+    exact a,
+    unfold is_equiseq at H,
+    esimp,
+    unfold rep0,
     induction n with n g,
     exact a,
     apply g,
