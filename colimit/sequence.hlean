@@ -29,6 +29,34 @@ namespace seq_colim
   definition is_equiv_of_equiseq [instance] {A : ℕ → Type} (f : seq_diagram A) [H : is_equiseq f] : forall (n : ℕ), is_equiv (@f n) :=
     H
 
+  section dependent_sequences
+
+  variable {A : ℕ → Type}
+  variable (f : seq_diagram A)
+
+  definition depseq_carrier : Type :=
+    forall ⦃n : ℕ⦄, A n → Type
+
+  definition depseq_diagram (P : depseq_carrier) : Type :=
+    forall ⦃n : ℕ⦄ ⦃a : A n⦄, P a → P (f a)
+
+  definition tmseq_carrier {P : depseq_carrier} (g : depseq_diagram f P) : Type :=
+    forall ⦃n : ℕ⦄ (a : A n), P a
+
+  definition tmseq_diagram {P : depseq_carrier} {g : depseq_diagram f P} (t : @tmseq_carrier _ _ _ g) : Type :=
+    forall ⦃n : ℕ⦄ (a : A n), g (t a) = t (f a)
+
+  definition wkseq_carrier (B : ℕ → Type) (g : @seq_diagram B) : @depseq_carrier A :=
+    λ n a, B n
+
+  definition wkseq_diagram (B : ℕ → Type) (g : @seq_diagram B) : @depseq_diagram A f (wkseq_carrier B g) :=
+    begin
+      unfold depseq_diagram,
+      unfold wkseq_carrier,
+    end
+
+  end dependent_sequences
+
   protected abbreviation Mk [constructor] := Seq_diagram.mk
   attribute Seq_diagram.carrier [coercion]
   attribute Seq_diagram.struct [instance] [priority 10000] [coercion]
@@ -171,11 +199,14 @@ namespace seq_colim
     definition id0_seq (x y : A 0) : ℕ → Type :=
       λ n, (@rep0 _ f n x) = (rep0 n y)
 
-    definition id0_seq (x y : A 0) : seq_diagram (@id0_seq A f x y) :=
-      begin
-        exact λ (n : ℕ), @ap (@f n) (rep0 n x) (rep0 n y)
-      end
-   --
+    definition id0_seq_diagram (x y : A 0) : seq_diagram (@id0_seq A f x y) :=
+      λ (n : ℕ), @ap _ _ (@f n) (rep0 n x) (rep0 n y)
+
+    definition id_seq (n : ℕ) (x y : A n) : ℕ → Type :=
+      λ k, (@rep _ f n k x) = (rep k y)
+
+    definition id_seq_diagram (n : ℕ) (x y : A n) : seq_diagram (@id_seq _ f n x y) :=
+      λ (k : ℕ), @ap _ _ (@f (n + k)) (rep k x) (rep k y)
 
   end constructions
 
